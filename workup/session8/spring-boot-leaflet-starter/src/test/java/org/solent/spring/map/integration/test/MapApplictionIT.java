@@ -1,4 +1,4 @@
-package org.solent.com619.devops.selenium.test;
+package org.solent.spring.map.integration.test;
 
 import org.junit.Test;
 import org.junit.Before;
@@ -12,27 +12,20 @@ import org.openqa.selenium.firefox.FirefoxBinary;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxDriverLogLevel;
 import org.openqa.selenium.firefox.FirefoxOptions;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.Dimension;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.Alert;
-import org.openqa.selenium.Keys;
-import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.io.File;
 import java.util.concurrent.TimeUnit;
-import java.net.MalformedURLException;
-import java.net.URL;
 
-public class MapTest1 {
-	private  Logger LOG = LoggerFactory.getLogger(MapTest1.class);
+
+public class MapApplictionIT {
+	private  Logger LOG = LoggerFactory.getLogger(MapApplictionIT.class);
 	
 	private WebDriver driver;
 	private Map<String, Object> vars;
@@ -41,15 +34,39 @@ public class MapTest1 {
 	@Before
 	public void setUp() {
 
-		// get geko driver from https://github.com/mozilla/geckodriver/releases
+		// get gecko driver from https://github.com/mozilla/geckodriver/releases
 		// if you didn't update the Path system variable to add the full directory path
 		// to the executable as above mentioned then doing this directly through code
-		System.setProperty("webdriver.gecko.driver", "C:\\devel\\geckodriver\\geckodriver.exe");
 		
+		String driverLocation = System.getProperty("webdriver.gecko.driver");
+		LOG.debug("initial system property webdriver.gecko.driver "+driverLocation);
+		if(driverLocation==null) {
+			// detect if windows or linux
+			String OS = System.getProperty("os.name").toLowerCase();
+			if(OS.contains("win")) {
+				LOG.debug("using windows driver");
+				driverLocation = "./geckodriver.exe";
+			} else {
+				LOG.debug("using linux driver");
+				driverLocation = "./geckodriver";
+			}
+			
+			File driver = new File(driverLocation);
+			System.setProperty("webdriver.gecko.driver", driver.getAbsolutePath());
+		}
+		LOG.debug("webdriver.gecko.driver set to "+System.getProperty("webdriver.gecko.driver"));
 		
 		FirefoxBinary firefoxBinary = new FirefoxBinary();
-		LOG.debug("setUp() HEADLESS");
-		//firefoxBinary.addCommandLineOptions("--headless");
+		
+		String headless = System.getProperty("selenium.firefox.headless");
+		LOG.debug("initial system property selenium.firefox.headless "+headless);
+		if ("true".equals(headless)) {
+			LOG.debug("system property selenium.firefox.headless="+headless+", running firefox in headless mode");
+			firefoxBinary.addCommandLineOptions("--headless");
+		} else {
+			LOG.debug("system property selenium.firefox.headless="+headless+", running firefox with display");
+		}
+
 		
 		FirefoxOptions firefoxOptions = new FirefoxOptions();
 		// set up proxy
@@ -58,13 +75,11 @@ public class MapTest1 {
 		LOG.debug("setUp() FIREFOX BINARY LOG LEVEL TRACE");
 		firefoxOptions.setBinary(firefoxBinary);
 		firefoxOptions.setLogLevel(FirefoxDriverLogLevel.TRACE);
-		LOG.debug("setUp() 4");
+		LOG.debug("setUp() LOADING FIREFOX DRIVER");
 
 		driver = new FirefoxDriver(firefoxOptions);
-		LOG.debug("setUp() 5");
-
-		LOG.debug("setUp() 6");
-
+		
+		LOG.debug("setUp() SETTING DRIVER TIMEOUTS");
 		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);		
 		
 		js = (JavascriptExecutor) driver;
@@ -73,10 +88,12 @@ public class MapTest1 {
 
 	@After
 	public void tearDown() {
+		LOG.debug("quitting driver");
 		driver.quit();
 	}
 
 	public String waitForWindow(int timeout) {
+		LOG.debug("waiting for window ms: "+timeout);
 		try {
 			Thread.sleep(timeout);
 		} catch (InterruptedException e) {
@@ -90,7 +107,7 @@ public class MapTest1 {
 		return whNow.iterator().next();
 	}
 
-//	@Test
+	@Test
 	public void pointTest() {
 		driver.get("http://localhost:8080/");
 		driver.manage().window().setSize(new Dimension(1095, 797));
@@ -108,17 +125,4 @@ public class MapTest1 {
 		driver.findElement(By.cssSelector(".execute")).click();
 		driver.findElement(By.cssSelector(".execute")).click();
 	}
-	
-	  @Test
-	  public void untitled() {
-	    driver.get("http://localhost:8080/");
-	    driver.manage().window().setSize(new Dimension(1095, 799));
-	    vars.put("window_handles", driver.getWindowHandles());
-	    driver.findElement(By.linkText("Swagger (OpenAPI) UI")).click();
-	    vars.put("win6278", waitForWindow(2000));
-	    driver.switchTo().window(vars.get("win6278").toString());
-	    driver.findElement(By.cssSelector("#operations-map-point-rest-controller-list .opblock-summary-method")).click();
-	    driver.findElement(By.cssSelector(".btn")).click();
-	    driver.findElement(By.cssSelector(".execute")).click();
-	  }
 }
